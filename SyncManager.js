@@ -429,6 +429,8 @@ class SyncManager {
             return;
         }
 
+        
+
         console.log("Uploading " + this.utils.getFileName());
         var register = this._readRegister()
         register = JSON.parse(register);
@@ -437,6 +439,53 @@ class SyncManager {
         const file_name = this.utils.getFileName().replace("\.js", "");
         const table = file_type;
         const sys_id = register[file_type][file_name]['sys_id'];
+
+
+        var remoteHasBeenModified = false;
+        await this._downloadSingleFile(file_name, table).then(
+            result=>{
+                const resp = result.body;
+                if(resp.result.length) {
+                    var res = resp.result[0];
+                    remoteHasBeenModified = register[file_type][file_name]['sys_updated_on'] != (res.sys_updated_on + '');
+                    console.log('remote modified ' + remoteHasBeenModified);
+                } else {
+                    vscode.window.showErrorMessage("Could not find " + file_name);
+                }
+            },
+            err=>{
+                console.log("Err");
+                console.log(err);
+                vscode.window.showErrorMessage("Error (" + err + ") while fetching " + file_name);
+            }
+        );
+        
+        if (remoteHasBeenModified){ // remote may have changed
+            //Ask for confirmation using QuickPick
+            console.log('remote modified');
+            // vscode.window.showInformationMessage("Remote file may have been modified");
+            await vscode.window.showQuickPick(['Export anyway', 'Compare with remote', 'Abort']).then(
+                res => {
+                    selection = res ? res : "undefined";
+                    return res; //TODO : Remove
+                },
+                err => {
+                    console.log("No selection made");
+                    console.log(err);
+                    selection = "undefined";
+                    return "undefined"; //TODO : remove
+                }
+            );
+
+            if(selection == "Abort" || selection == "undefined") {
+                vscode.window.showWarningMessage("Export operation aborted");
+                return;
+            } else if(selection == "Compare with remote") {
+                this.showDiff("Remote ↔ Local");
+                return;
+            }
+        }
+        
         console.log("Attempting put");
         this.http_client.put(table, sys_id, script).then(result=>{
             var local_update_time = register[file_type][file_name]['sys_updated_on'];
