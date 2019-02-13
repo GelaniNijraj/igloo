@@ -88,13 +88,14 @@
         "test": "node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
-        "typescript": "^2.6.1",
         "eslint": "^4.11.0",
+        "simple-git": "^1.107.0",
         "superagent": "3.5.2",
         "@types/node": "^8.10.25",
         "@types/mocha": "^2.2.42"
     },
     "devDependencies": {
+        "typescript": "^2.6.1",
         "vscode": "^1.1.21"
     }
 }
